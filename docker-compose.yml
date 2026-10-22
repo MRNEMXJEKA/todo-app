@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - pgdata:/var/lib/postgresql
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 3s
+      retries: 10
+
+  redis:
+    image: redis:8
+
+  backend:
+    build: ./todo_app_backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8080
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:admin@db:5432/postgres
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  worker:
+    build: ./todo_app_backend
+    command: celery -A app.celery worker -l info
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:admin@db:5432/postgres
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  pgdata:

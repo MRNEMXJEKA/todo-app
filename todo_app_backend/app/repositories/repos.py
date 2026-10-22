@@ -1,0 +1,45 @@
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.models.category import CategoryORM
+from app.models.task import TaskORM
+
+
+class TaskRepository:
+    """Только доступ к данным. commit делает сервис."""
+
+    def __init__(self, db: Session) -> None:
+        self.db = db
+
+    def get_all(self) -> list[TaskORM]:
+        return list(self.db.scalars(select(TaskORM)).all())
+
+    def get_by_id(self, task_id: str) -> TaskORM | None:
+        return self.db.get(TaskORM, task_id)
+
+    def create(self, title: str) -> TaskORM:
+        task = TaskORM(title=title, completed=False)
+        self.db.add(task)
+        return task
+
+    def delete(self, task: TaskORM) -> None:
+        self.db.delete(task)
+
+
+class CategoryRepository:
+    def __init__(self, db: Session) -> None:
+        self.db = db
+
+    def get_all(self) -> list[CategoryORM]:
+        return list(self.db.scalars(select(CategoryORM)).all())
+
+    def get_by_id(self, category_id: str) -> CategoryORM | None:
+        return self.db.get(CategoryORM, category_id)
+
+    def create(self, name: str) -> CategoryORM:
+        category = CategoryORM(name=name)
+        self.db.add(category)
+        return category
+
+    def delete(self, category: CategoryORM) -> None:
+        self.db.delete(category)
